@@ -178,7 +178,11 @@ bq_table_download <-
       progress <- NULL
     }
 
-    for (i in seq_len(chunk_plan$n_chunks)) {
+    # swn change: add indication of total number of chunks and connection index
+    n_chunks <- chunk_plan$n_chunks
+    con_idx  <- 1
+
+    for(i in seq_len(n_chunks)){
       handle <- bq_download_chunk_handle(
         x,
         begin = chunk_plan$dat$chunk_begin[i],
@@ -189,8 +193,16 @@ bq_table_download <-
         done = bq_download_callback(chunk_plan$dat$path[i], progress),
         pool = pool
       )
+
+      # swn change: ping the server when at most max_connections connections open
+      if(i >= n_chunks || con_idx >= max_connections){
+        curl::multi_run(pool = pool)
+        con_idx <- 1
+      } else {
+        con_idx <- con_idx + 1
+      }
     }
-    curl::multi_run(pool = pool)
+
     defer(unlink(chunk_plan$dat$path))
 
     table_data <- bq_parse_files(
