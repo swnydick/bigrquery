@@ -205,12 +205,39 @@ bq_table_download <-
 
     defer(unlink(chunk_plan$dat$path))
 
-    table_data <- bq_parse_files(
-      schema_path,
-      c(path_first_chunk, chunk_plan$dat$path),
-      n = n_max,
-      quiet = quiet
+    # swn change: add a warning if the download was not successful
+    paths      <- c(path_first_chunk, chunk_plan$dat$path)
+    table_data <- tryCatch(
+      expr   = bq_parse_files(
+        schema_path,
+        paths,
+        n = n_max,
+        quiet = quiet
+      ),
+      error = \(e) {
+        cli::cli_warn(e)
+        return(NULL)
+      }
     )
+
+    # swn change: determine actual counts and re-download
+    if(is.null(table_data)){
+      if (!quiet) {
+        cli::cli_alert_warning("Re-downloading data using correct data size.")
+      }
+      n_actual   <- vapply(
+        X   = paths,
+        FUN = \(x) length(jsonlite::read_json(x)$rows),
+        FUN.VALUE = integer(1)
+      )
+      table_data <- bq_parse_files(
+        schema_path,
+        paths,
+        n = sum(n_actual),
+        quiet = quiet
+      )
+    }
+
     parse_postprocess(table_data, bigint = bigint)
   }
 
