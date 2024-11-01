@@ -141,7 +141,7 @@ bq_table_download <-
     }
 
     if (chunk_size_from_user && n_got < chunk_size) {
-      cli::cli_abort(c(
+      cli::cli_warn(c(
         "First chunk is incomplete:",
         x = "{big_mark(chunk_size)} rows were requested, but only {big_mark(n_got)} rows were received.",
         i = "Leave `page_size` unspecified or use an even smaller value."
