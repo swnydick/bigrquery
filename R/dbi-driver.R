@@ -47,7 +47,7 @@ bigquery <- function() {
 #' @export
 #' @rdname bigquery
 #' @usage NULL
-dbi_driver  <- function() {
+dbi_driver <- function() {
   warning(
     "`dbi_driver()` deprecated; please use `bigquery()` instead`",
     call. = FALSE
@@ -61,6 +61,7 @@ setClass("BigQueryDriver", contains = "DBIDriver")
 
 #' @rdname bigquery
 #' @inheritParams DBI::dbConnect
+#' @param drv The result of `bigquery()`.
 #' @param project,dataset Project and dataset identifiers
 #' @inheritParams bq_perform_query
 #' @inheritParams bq_projects
@@ -72,17 +73,19 @@ setClass("BigQueryDriver", contains = "DBIDriver")
 #' @param ... Other arguments for compatibility with generic; currently ignored.
 #' @export
 setMethod(
-  "dbConnect", "BigQueryDriver",
-  function(drv,
-           project,
-           dataset = NULL,
-           billing = project,
-           page_size = 1e4,
-           quiet = NA,
-           use_legacy_sql = FALSE,
-           bigint = c("integer", "integer64", "numeric", "character"),
-           ...) {
-
+  "dbConnect",
+  "BigQueryDriver",
+  function(
+    drv,
+    project,
+    dataset = NULL,
+    billing = project,
+    page_size = 1e4,
+    quiet = NA,
+    use_legacy_sql = FALSE,
+    bigint = c("integer", "integer64", "numeric", "character"),
+    ...
+  ) {
     check_string(project)
     check_string(dataset, allow_null = TRUE)
     check_string(billing)
@@ -107,9 +110,11 @@ setMethod(
 #' @rdname DBI
 #' @export
 setMethod(
-  "dbConnect", "bq_dataset",
+  "dbConnect",
+  "bq_dataset",
   function(drv, ...) {
-    DBI::dbConnect(bigquery(),
+    DBI::dbConnect(
+      bigquery(),
       project = drv$project,
       dataset = drv$dataset,
       ...
@@ -124,7 +129,8 @@ setMethod(
 #' @inheritParams methods::show
 #' @export
 setMethod(
-  "show", "BigQueryDriver",
+  "show",
+  "BigQueryDriver",
   function(object) {
     cat("<BigQueryDriver>\n")
   }
@@ -134,7 +140,8 @@ setMethod(
 #' @inheritParams DBI::dbGetInfo
 #' @export
 setMethod(
-  "dbGetInfo", "BigQueryDriver",
+  "dbGetInfo",
+  "BigQueryDriver",
   function(dbObj, ...) {
     list(
       driver.version = PACKAGE_VERSION,
@@ -148,7 +155,8 @@ setMethod(
 #' @inheritParams DBI::dbIsValid
 #' @export
 setMethod(
-  "dbIsValid", "BigQueryDriver",
+  "dbIsValid",
+  "BigQueryDriver",
   function(dbObj, ...) {
     TRUE
   }
@@ -158,7 +166,8 @@ setMethod(
 #' @inheritParams DBI::dbDataType
 #' @export
 setMethod(
-  "dbDataType", "BigQueryDriver",
+  "dbDataType",
+  "BigQueryDriver",
   function(dbObj, obj, ...) {
     data_type(obj)
   }

@@ -20,6 +20,27 @@ test_that("can work with literal SQL", {
   expect_true("fips_code" %in% dbplyr::op_vars(x))
 })
 
+test_that("can work with nested table identifier", {
+  con1 <- DBI::dbConnect(
+    bigquery(),
+    project = "bigquery-public-data",
+    billing = bq_test_project()
+  )
+  # As far as I can tell from the BigQuery API there's no way to provide
+  # a default project; you can either provide a default dataset + project or
+  # nothing
+  table_name <- I("bigquery-public-data.utility_us.country_code_iso")
+  expect_no_error(dplyr::collect(head(dplyr::tbl(con1, table_name))))
+
+  con2 <- DBI::dbConnect(
+    bigquery(),
+    project = "bigquery-public-data",
+    dataset = "utility_us",
+    billing = bq_test_project(),
+  )
+  expect_no_error(dplyr::collect(head(dplyr::tbl(con2, "country_code_iso"))))
+})
+
 test_that("can copy_to", {
   ds <- bq_test_dataset()
   con <- DBI::dbConnect(ds)
@@ -44,7 +65,9 @@ test_that("can collect and compute (no dataset)", {
 
   # compute: persistent
   name <- paste0("basedata.", random_name())
-  if (packageVersion("dbplyr") >= "2.4.0.9000") name <- I(name)
+  if (packageVersion("dbplyr") >= "2.4.0.9000") {
+    name <- I(name)
+  }
   perm <- dplyr::compute(bq_mtcars, name = name, temporary = FALSE)
   defer(DBI::dbRemoveTable(con, name))
 
@@ -53,7 +76,8 @@ test_that("can collect and compute (no dataset)", {
 })
 
 test_that("can collect and compute (with dataset)", {
-  con <- DBI::dbConnect(bigquery(),
+  con <- DBI::dbConnect(
+    bigquery(),
     project = bq_test_project(),
     dataset = "basedata"
   )
@@ -120,23 +144,25 @@ test_that("collect can identify directly download tables", {
 
 test_that("casting uses bigquery types", {
   skip_if_not_installed("dbplyr")
+  con <- simulate_bigrquery()
 
-  sql <- dbplyr::lazy_frame(x = "1") %>%
-    dplyr::mutate(y = as.integer(x), z = as.numeric(x)) %>%
-    dbplyr::sql_build(simulate_bigrquery())
-
-  expect_equal(sql$select[[2]], 'SAFE_CAST(`x` AS INT64)')
-  expect_equal(sql$select[[3]], 'SAFE_CAST(`x` AS FLOAT64)')
+  expect_equal(
+    dbplyr::translate_sql(as.integer(x), con = con),
+    dbplyr::sql("SAFE_CAST(`x` AS INT64)")
+  )
+  expect_equal(
+    dbplyr::translate_sql(as.numeric(x), con = con),
+    dbplyr::sql("SAFE_CAST(`x` AS FLOAT64)")
+  )
 })
 
 test_that("%||% translates to IFNULL", {
   skip_if_not_installed("dbplyr")
 
-  sql <- dbplyr::lazy_frame(x = 1L) %>%
-    dplyr::mutate(y = x %||% 2L) %>%
-    dbplyr::sql_build(simulate_bigrquery())
-
-  expect_equal(sql$select[[2]], 'IFNULL(`x`, 2)')
+  expect_equal(
+    dbplyr::translate_sql(x %||% 2L, con = simulate_bigrquery()),
+    dbplyr::sql("IFNULL(`x`, 2)")
+  )
 })
 
 test_that("suffixes use _", {
@@ -156,13 +182,14 @@ test_that("all BigQuery tbls share the same src", {
     billing = bq_test_project()
   )
 
-  tbl1 <- dplyr::tbl(con1, "basedata.mtcars", vars = "x")
-  tbl2 <- dplyr::tbl(con2, "publicdata.samples.natality", vars = "x")
+  tbl1 <- dplyr::tbl(con1, I("basedata.mtcars"), vars = "x")
+  tbl2 <- dplyr::tbl(con2, I("publicdata.samples.natality"), vars = "x")
   expect_true(dplyr::same_src(tbl1, tbl2))
   expect_false(dplyr::same_src(tbl1, mtcars))
 })
 
 test_that("runif is correctly translated", {
+  skip_if_not_installed("dbplyr", "2.4.0")
   expect_equal(
     dbplyr::translate_sql(runif(n()), con = simulate_bigrquery()),
     dbplyr::sql("RAND()")
@@ -180,7 +207,11 @@ test_that("string functions correctly", {
 
 test_that("median is correctly translated", {
   expect_equal(
-    dbplyr::translate_sql(median(x), con = simulate_bigrquery(), window = FALSE),
+    dbplyr::translate_sql(
+      median(x),
+      con = simulate_bigrquery(),
+      window = FALSE
+    ),
     dbplyr::sql("APPROX_QUANTILES(`x`, 2)[SAFE_ORDINAL(2)]")
   )
 })

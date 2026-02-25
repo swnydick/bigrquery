@@ -55,12 +55,12 @@ print.bq_bytes <- function(x, ...) {
 }
 # nocov end
 
-defer <- function (expr, env = caller_env(), after = FALSE) {
+defer <- function(expr, env = caller_env(), after = FALSE) {
   thunk <- as.call(list(function() expr))
   do.call(on.exit, list(thunk, TRUE, after), envir = env)
 }
 
-in_pkgdown <- function(){
+in_pkgdown <- function() {
   identical(Sys.getenv("IN_PKGDOWN"), "true")
 }
 
@@ -70,4 +70,8 @@ as_query <- function(x, error_arg = caller_arg(x), error_call = caller_env()) {
   }
   check_string(x, arg = error_arg, call = error_call)
   x
+}
+
+has_bigrquerystorage <- function() {
+  is_installed("bigrquerystorage")
 }

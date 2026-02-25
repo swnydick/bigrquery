@@ -1,6 +1,6 @@
 Package: bigrquery
 Title: An Interface to Google's 'BigQuery' 'API'
-Version: 1.5.1.9002
+Version: 1.6.1.9001
 Authors@R: c(
     person("Hadley", "Wickham", , "hadley@posit.co", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-4757-117X")),
@@ -12,9 +12,9 @@ Description: Easily talk to Google's 'BigQuery' database from R.
 License: MIT + file LICENSE
 URL: https://bigrquery.r-dbi.org, https://github.com/r-dbi/bigrquery
 BugReports: https://github.com/r-dbi/bigrquery/issues
-Depends: 
-    R (>= 3.6)
-Imports: 
+Depends:
+    R (>= 4.1)
+Imports:
     bit64,
     brio,
     cli,
@@ -28,8 +28,10 @@ Imports:
     methods,
     prettyunits,
     rlang (>= 1.1.0),
-    tibble
-Suggests: 
+    tibble,
+    nanoparquet (>= 0.3.1)
+Suggests:
+    bigrquerystorage (>= 1.2.1),
     blob,
     covr,
     dbplyr (>= 2.4.0),
@@ -40,7 +42,7 @@ Suggests:
     testthat (>= 3.1.5),
     wk (>= 0.3.2),
     withr
-LinkingTo: 
+LinkingTo:
     cli,
     cpp11,
     rapidjsonr
@@ -50,8 +52,8 @@ Config/testthat/parallel: TRUE
 Config/testthat/start-first: bq-table, dplyr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
-Collate: 
+RoxygenNote: 7.3.3
+Collate:
     'bigrquery-package.R'
     'bq-auth.R'
     'bq-dataset.R'
